@@ -7,67 +7,107 @@
 */
 
 (function(root, factory) {
-
-  if (typeof define === 'function' && define.amd) {
-    define(['moment', 'jquery', 'exports'], function(momentjs, $, exports) {
-      root.daterangepicker = factory(root, exports, momentjs, $);
-    });
-
-  } else if (typeof exports !== 'undefined') {
-      var momentjs = require('moment');
-      var jQuery = (typeof window != 'undefined') ? window.jQuery : undefined;  //isomorphic issue
-      if (!jQuery) {
-          try {
-              jQuery = require('jquery');
-              if (!jQuery.fn) jQuery.fn = {}; //isomorphic issue
-          } catch (err) {
-              if (!jQuery) throw new Error('jQuery dependency not found');
-          }
-      }
-
-    factory(root, exports, momentjs, jQuery);
-
-  // Finally, as a browser global.
-  } else {
-    root.daterangepicker = factory(root, {}, root.moment || moment, (root.jQuery || root.Zepto || root.ender || root.$));
-  }
+    if (typeof define === 'function' && define.amd) 
+    {
+        define(['moment', 'jquery', 'exports'], function(momentjs, $, exports) {
+            root.daterangepicker = factory(root, exports, momentjs, $);
+        });
+    } 
+    else if (typeof exports !== 'undefined') 
+    {
+        var momentjs = require('moment');
+        var jQuery = (typeof window != 'undefined') ? window.jQuery : undefined;  //isomorphic issue
+        if (!jQuery) {
+            try {
+                jQuery = require('jquery');
+                if (!jQuery.fn) jQuery.fn = {}; //isomorphic issue
+            } 
+            catch (err) {
+                if (!jQuery) throw new Error('jQuery dependency not found');
+            }
+        }
+        factory(root, exports, momentjs, jQuery);
+        // Finally, as a browser global.
+    } 
+    else {
+        root.daterangepicker = factory(root, {}, root.moment || moment, (root.jQuery || root.Zepto || root.ender || root.$));
+    }
 
 }(this || {}, function(root, daterangepicker, moment, $) { // 'this' doesn't exist on a server
 
     var DateRangePicker = function(element, options, cb) {
 
-        //default settings for options
+        // jQuery selector of the parent element that the date range picker will be added to, if not provided this will be 'body'
         this.parentEl = 'body';
         this.element = $(element);
+
+        // Start and end of date range
         this.startDate = moment().startOf('day');
         this.endDate = moment().endOf('day');
+
+        // The earliest/latest date a user may select
         this.minDate = false;
         this.maxDate = false;
+
+        // The maximum span between the selected start and end dates. Can have any property you can add to a moment object (i.e. days, months)
         this.dateLimit = false;
+
+        // If selected range should be apply after selected end date in custom range
         this.autoApply = false;
+
+        // Show only a single calendar to choose one date, instead of a range picker with two calendars; 
+        // the start and end dates provided to your callback will be the same single date chosen
         this.singleDatePicker = false;
+
+        //  Show year and month select boxes above calendars to jump to a specific month and year
         this.showDropdowns = false;
+
+        // Show week numbers at the start of each week on the calendars
         this.showWeekNumbers = false;
+
+        // Time picker
         this.timePicker = false;
         this.timePicker24Hour = false;
         this.timePickerIncrement = 1;
         this.timePickerSeconds = false;
+
+        // When enabled, the two calendars displayed will always be for two sequential months,
+        // When disabled, the two calendars can be individually advanced and display any month/year.
         this.linkedCalendars = true;
+
+        // Indicates whether the date range picker should automatically update the value
         this.autoUpdateInput = true;
+
+        // Set predefined date ranges the user can select from. Each key is the label for the range, 
+        // and its value an array with two dates representing the bounds of the range
         this.ranges = {};
 
+        // Whether the picker appears aligned to the left, to the right, or centered under the HTML element it's attached to
+        // left/right/center
         this.opens = 'right';
-        if (this.element.hasClass('pull-right'))
+        if (this.element.hasClass('pull-right')) {
             this.opens = 'left';
+        }
 
+        // Whether the picker appears below (default) or above the HTML element it's attached to
+        // down/up
         this.drops = 'down';
-        if (this.element.hasClass('dropup'))
+        if (this.element.hasClass('dropup')) {
             this.drops = 'up';
+        }
 
+        // CSS class names that will be added to all buttons in the picker
         this.buttonClasses = 'btn btn-sm';
+
+        // CSS class string that will be added to the apply button
         this.applyClass = 'btn-success';
+
+        // CSS class string that will be added to the cancel button
         this.cancelClass = 'btn-default';
 
+        this.showOnInit = true;
+
+        // Allows you to provide localized strings for buttons and labels, customize the date display format, and change the first day of week for the calendars
         this.locale = {
             format: 'MM/DD/YYYY',
             separator: ' - ',
@@ -75,6 +115,8 @@
             cancelLabel: 'Cancel',
             weekLabel: 'W',
             customRangeLabel: 'Custom Range',
+            fromLabel: 'Start date',
+            toLabel: 'End date',
             daysOfWeek: moment.weekdaysMin(),
             monthNames: moment.monthsShort(),
             firstDay: moment.localeData().firstDayOfWeek()
@@ -82,89 +124,100 @@
 
         this.callback = function() { };
 
-        //some state information
+        // Some state information
         this.isShowing = false;
         this.leftCalendar = {};
         this.rightCalendar = {};
 
-        //custom options from user
-        if (typeof options !== 'object' || options === null)
+        // custom options from user
+        if (typeof options !== 'object' || options === null) 
+        {
             options = {};
+        }
 
-        //allow setting options with data attributes
-        //data-api options will be overwritten with custom javascript options
+        // allow setting options with data attributes
+        // data-api options will be overwritten with custom javascript options
         options = $.extend(this.element.data(), options);
 
-        //html template for the picker UI
-        if (typeof options.template !== 'string')
-            options.template = '<div class="daterangepicker dropdown-menu">' +
-                '<div class="calendar left">' +
-                    '<div class="daterangepicker_input">' +
-                      '<input class="input-mini" type="text" name="daterangepicker_start" value="" />' +
-                      '<i class="fa fa-calendar glyphicon glyphicon-calendar"></i>' +
-                      '<div class="calendar-time">' +
-                        '<div></div>' +
-                        '<i class="fa fa-clock-o glyphicon glyphicon-time"></i>' +
-                      '</div>' +
-                    '</div>' +
-                    '<div class="calendar-table"></div>' +
-                '</div>' +
-                '<div class="calendar right">' +
-                    '<div class="daterangepicker_input">' +
-                      '<input class="input-mini" type="text" name="daterangepicker_end" value="" />' +
-                      '<i class="fa fa-calendar glyphicon glyphicon-calendar"></i>' +
-                      '<div class="calendar-time">' +
-                        '<div></div>' +
-                        '<i class="fa fa-clock-o glyphicon glyphicon-time"></i>' +
-                      '</div>' +
-                    '</div>' +
-                    '<div class="calendar-table"></div>' +
-                '</div>' +
-                '<div class="ranges">' +
-                    '<div class="range_inputs">' +
-                        '<button class="applyBtn" disabled="disabled" type="button"></button> ' +
-                        '<button class="cancelBtn" type="button"></button>' +
-                    '</div>' +
-                '</div>' +
-            '</div>';
-
-        this.parentEl = (options.parentEl && $(options.parentEl).length) ? $(options.parentEl) : $(this.parentEl);
-        this.container = $(options.template).appendTo(this.parentEl);
 
         //
         // handle all the possible options overriding defaults
         //
+        if ( typeof options.locale === 'object' ) 
+        {
+            // Strings
+            var strings = ["format", "separator", "applyLabel", "cancelLabel", "weekLabel", "fromLabel", "toLabel", "customRangeLabel"];
+            for ( var i in strings ) {
+                var key = strings[i];
+                if ( typeof options.locale[key] === 'string' ) 
+                {
+                    this.locale[key] = options.locale[key];
+                }
+            }
 
-        if (typeof options.locale === 'object') {
+            // Objects
+            var objects = ["daysOfWeek", "monthNames"];
+            for ( var i in objects ) {
+                var key = objects[i];
+                if ( typeof options.locale[key] === 'object' ) 
+                {
+                    this.locale[key] = options.locale[key].slice();
+                }
+            }
 
-            if (typeof options.locale.format === 'string')
-                this.locale.format = options.locale.format;
-
-            if (typeof options.locale.separator === 'string')
-                this.locale.separator = options.locale.separator;
-
-            if (typeof options.locale.daysOfWeek === 'object')
-                this.locale.daysOfWeek = options.locale.daysOfWeek.slice();
-
-            if (typeof options.locale.monthNames === 'object')
-              this.locale.monthNames = options.locale.monthNames.slice();
-
-            if (typeof options.locale.firstDay === 'number')
-              this.locale.firstDay = options.locale.firstDay;
-
-            if (typeof options.locale.applyLabel === 'string')
-              this.locale.applyLabel = options.locale.applyLabel;
-
-            if (typeof options.locale.cancelLabel === 'string')
-              this.locale.cancelLabel = options.locale.cancelLabel;
-
-            if (typeof options.locale.weekLabel === 'string')
-              this.locale.weekLabel = options.locale.weekLabel;
-
-            if (typeof options.locale.customRangeLabel === 'string')
-              this.locale.customRangeLabel = options.locale.customRangeLabel;
-
+            // Numbers
+            if ( typeof options.locale.firstDay === 'number' ) 
+            {
+                this.locale.firstDay = options.locale.firstDay;
+            }
         }
+
+
+        // HTML template for the picker UI
+        if (typeof options.template !== 'string') {
+            options.template = '<div class="daterangepicker dropdown-menu">' +
+                '<div class="ranges">' +
+                '</div>' +
+                '<div class="custom-range">' +
+                    '<div class="clearfix calendars">' +
+                        '<div class="calendar left">' +
+                            '<div class="calendar-table"></div>' +
+                        '</div>' +
+                        '<div class="calendar right">' +
+                            '<div class="calendar-table"></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="clearfix bottom">' +
+                        '<div class="pull-left clearfix range-inputs">' +
+                            '<div class="pull-left daterangepicker_input">' +
+                              '<label for="daterangepicker_end">' + this.locale.fromLabel + '</label>' +
+                              '<input class="inp" type="text" name="daterangepicker_start" value="" />' +
+                            '</div>' +
+                            '<div class="pull-left daterangepicker_input">' +
+                              '<label for="daterangepicker_end">' + this.locale.toLabel + '</label>' +
+                              '<input class="inp" type="text" name="daterangepicker_end" value="" />' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="pull-right range-buttons">' +
+                            '<button class="applyBtn" disabled="disabled" type="button"></button> ' +
+                            '<button class="cancelBtn" type="button"></button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        // Default other templates
+        var defaultTemplates = {
+            arrowLeft: '<i class="fa fa-chevron-left"></i>',
+            arrowRight: '<i class="fa fa-chevron-right"></i>',
+        };
+
+        // Tempaltes for other elements
+        this.templates = $.extend(defaultTemplates, options.templates);
+
+        this.parentEl = (options.parentEl && $(options.parentEl).length) ? $(options.parentEl) : $(this.parentEl);
+        this.container = $(options.template).appendTo(this.parentEl);
 
         if (typeof options.startDate === 'string')
             this.startDate = moment(options.startDate, this.locale.format);
@@ -329,7 +382,7 @@
             for (range in this.ranges) {
                 list += '<li>' + range + '</li>';
             }
-            list += '<li>' + this.locale.customRangeLabel + '</li>';
+            list += '<li class="li-custom">' + this.locale.customRangeLabel + '</li>';
             list += '</ul>';
             this.container.find('.ranges').prepend(list);
         }
@@ -376,7 +429,7 @@
             var ranges = this.container.find('.ranges');
             var html = ranges.clone();
             ranges.remove();
-            this.container.find('.calendar.left').parent().prepend(html);
+            this.container.find('.custom-range').parent().prepend(html);
         }
 
         //apply CSS classes and labels to buttons
@@ -398,16 +451,17 @@
             .on('click.daterangepicker', 'td.available', $.proxy(this.clickDate, this))
             .on('mouseenter.daterangepicker', 'td.available', $.proxy(this.hoverDate, this))
             .on('mouseleave.daterangepicker', 'td.available', $.proxy(this.updateFormInputs, this))
-            .on('change.daterangepicker', 'select.yearselect', $.proxy(this.monthOrYearChanged, this))
-            .on('change.daterangepicker', 'select.monthselect', $.proxy(this.monthOrYearChanged, this))
+            .on('change.daterangepicker', 'select.year-month-select', $.proxy(this.monthOrYearChanged, this))
             .on('change.daterangepicker', 'select.hourselect,select.minuteselect,select.secondselect,select.ampmselect', $.proxy(this.timeChanged, this))
             .on('click.daterangepicker', '.daterangepicker_input input', $.proxy(this.showCalendars, this))
             //.on('keyup.daterangepicker', '.daterangepicker_input input', $.proxy(this.formInputsChanged, this))
             .on('change.daterangepicker', '.daterangepicker_input input', $.proxy(this.formInputsChanged, this));
 
-        this.container.find('.ranges')
+        this.container.find('.range-buttons')
             .on('click.daterangepicker', 'button.applyBtn', $.proxy(this.clickApply, this))
-            .on('click.daterangepicker', 'button.cancelBtn', $.proxy(this.clickCancel, this))
+            .on('click.daterangepicker', 'button.cancelBtn', $.proxy(this.clickCancel, this));
+
+        this.container.find('.ranges')
             .on('click.daterangepicker', 'li', $.proxy(this.clickRange, this))
             .on('mouseenter.daterangepicker', 'li', $.proxy(this.hoverRange, this))
             .on('mouseleave.daterangepicker', 'li', $.proxy(this.updateFormInputs, this));
@@ -583,6 +637,7 @@
             this.renderCalendar('left');
             this.renderCalendar('right');
 
+
             //highlight any predefined range matching the current start and end dates
             this.container.find('.ranges li').removeClass('active');
             if (this.endDate == null) return;
@@ -611,6 +666,18 @@
                 this.showCalendars();
             }
 
+        },
+
+        createYearMonthKey: function(year, month)
+        {
+            return [year, month].join("-");
+        },
+
+        parseYearMonthKey: function(key)
+        {
+            return key.split("-").map(function(val){
+                return parseInt(val, 10);
+            });
         },
 
         renderCalendar: function(side) {
@@ -686,58 +753,58 @@
             var maxDate = this.maxDate;
             var selected = side == 'left' ? this.startDate : this.endDate;
 
-            var html = '<table class="table-condensed">';
+            var html = '<table class="">';
             html += '<thead>';
             html += '<tr>';
 
             // add empty cell for week number
             if (this.showWeekNumbers)
                 html += '<th></th>';
-
             if ((!minDate || minDate.isBefore(calendar.firstDay)) && (!this.linkedCalendars || side == 'left')) {
-                html += '<th class="prev available"><i class="fa fa-chevron-left glyphicon glyphicon-chevron-left"></i></th>';
+                html += '<th class="prev available">' + this.templates.arrowLeft + '</th>';
             } else {
                 html += '<th></th>';
             }
 
             var dateHtml = this.locale.monthNames[calendar[1][1].month()] + calendar[1][1].format(" YYYY");
 
-            if (this.showDropdowns) {
-                var currentMonth = calendar[1][1].month();
-                var currentYear = calendar[1][1].year();
-                var maxYear = (maxDate && maxDate.year()) || (currentYear + 5);
-                var minYear = (minDate && minDate.year()) || (currentYear - 50);
-                var inMinYear = currentYear == minYear;
-                var inMaxYear = currentYear == maxYear;
+            // Show month and year as text or select
+            if (this.showDropdowns) 
+            {
+                // Current
+                var currentMonth = calendar[1][1].month(),
+                    currentYear = calendar[1][1].year(),
+                    current = this.createYearMonthKey(currentYear, currentMonth);
+                // Max/min
+                var maxYear = (maxDate && maxDate.year()) || (currentYear + 5),
+                    minYear = (minDate && minDate.year()) || (currentYear - 50),
+                    minMonth = minDate && minDate.month(),
+                    maxMonth = maxDate && maxDate.month();
 
-                var monthHtml = '<select class="monthselect">';
-                for (var m = 0; m < 12; m++) {
-                    if ((!inMinYear || m >= minDate.month()) && (!inMaxYear || m <= maxDate.month())) {
-                        monthHtml += "<option value='" + m + "'" +
-                            (m === currentMonth ? " selected='selected'" : "") +
-                            ">" + this.locale.monthNames[m] + "</option>";
-                    } else {
-                        monthHtml += "<option value='" + m + "'" +
-                            (m === currentMonth ? " selected='selected'" : "") +
-                            " disabled='disabled'>" + this.locale.monthNames[m] + "</option>";
+                var dateHtml = '<select class="daterangepicker-select year-month-select">';
+                // Year
+                for (var y = minYear; y <= maxYear; y++) 
+                {
+                    // Month
+                    for (var m = 0; m < 12; m++) 
+                    {
+                        // Skip items
+                        if ( ( y <= minYear && m < minMonth ) || ( y >= maxYear && m > maxMonth ) ) 
+                        {
+                            continue;
+                        }
+                        var key = this.createYearMonthKey(y, m);
+                        dateHtml += '<option value="' + key + '"' +
+                            (key === current ? ' selected="selected"' : '') +
+                            '>' + this.locale.monthNames[m] + " " + y + '</option>';
                     }
                 }
-                monthHtml += "</select>";
-
-                var yearHtml = '<select class="yearselect">';
-                for (var y = minYear; y <= maxYear; y++) {
-                    yearHtml += '<option value="' + y + '"' +
-                        (y === currentYear ? ' selected="selected"' : '') +
-                        '>' + y + '</option>';
-                }
-                yearHtml += '</select>';
-
-                dateHtml = monthHtml + yearHtml;
+                dateHtml += '</select>';
             }
 
             html += '<th colspan="5" class="month">' + dateHtml + '</th>';
             if ((!maxDate || maxDate.isAfter(calendar.lastDay)) && (!this.linkedCalendars || side == 'right' || this.singleDatePicker)) {
-                html += '<th class="next available"><i class="fa fa-chevron-right glyphicon glyphicon-chevron-right"></i></th>';
+                html += '<th class="next available">' + this.templates.arrowRight + '</i></th>';
             } else {
                 html += '<th></th>';
             }
@@ -822,7 +889,7 @@
                     if (!disabled)
                         cname += 'available';
 
-                    html += '<td class="' + cname.replace(/^\s+|\s+$/g, '') + '" data-title="' + 'r' + row + 'c' + col + '">' + calendar[row][col].date() + '</td>';
+                    html += '<td class="' + cname.replace(/^\s+|\s+$/g, '') + '" data-title="' + 'r' + row + 'c' + col + '"><span class="td-in">' + calendar[row][col].date() + '</span></td>';
 
                 }
                 html += '</tr>';
@@ -1215,19 +1282,26 @@
         },
 
         hoverDate: function(e) {
+            var element = e.target;
+            // click to span
+            if ( $(element).hasClass('td-in') ) {
+                element = $(element).parents("td").first();
+            } 
 
             //ignore mouse movements while an above-calendar text input has focus
             if (this.container.find('input[name=daterangepicker_start]').is(":focus") || this.container.find('input[name=daterangepicker_end]').is(":focus"))
                 return;
 
             //ignore dates that can't be selected
-            if (!$(e.target).hasClass('available')) return;
+            if ( !$(element).hasClass('available') ) {
+                return;
+            }
 
             //have the text inputs above calendars reflect the date being hovered over
-            var title = $(e.target).attr('data-title');
+            var title = $(element).attr('data-title');
             var row = title.substr(1, 1);
             var col = title.substr(3, 1);
-            var cal = $(e.target).parents('.calendar');
+            var cal = $(element).parents('.calendar');
             var date = cal.hasClass('left') ? this.leftCalendar.calendar[row][col] : this.rightCalendar.calendar[row][col];
 
             if (this.endDate) {
@@ -1264,13 +1338,20 @@
         },
 
         clickDate: function(e) {
+            var element = e.target;
+            // click to span
+            if ( $(element).hasClass('td-in') ) {
+                element = $(element).parents("td").first();
+            } 
+            // Check if td is available
+            if ( !$(element).hasClass('available') ) {
+                return;
+            }
 
-            if (!$(e.target).hasClass('available')) return;
-
-            var title = $(e.target).attr('data-title');
+            var title = $(element).attr('data-title');
             var row = title.substr(1, 1);
             var col = title.substr(3, 1);
-            var cal = $(e.target).parents('.calendar');
+            var cal = $(element).parents('.calendar');
             var date = cal.hasClass('left') ? this.leftCalendar.calendar[row][col] : this.rightCalendar.calendar[row][col];
 
             //
@@ -1348,8 +1429,9 @@
                 cal = this.container.find('.calendar.'+leftOrRight);
 
             // Month must be Number for new moment versions
-            var month = parseInt(cal.find('.monthselect').val(), 10);
-            var year = cal.find('.yearselect').val();
+            var current = this.parseYearMonthKey(cal.find('.year-month-select').val());
+            var month = current[1];
+            var year = current[0];
 
             if (!isLeft) {
                 if (year < this.startDate.year() || (year == this.startDate.year() && month < this.startDate.month())) {
