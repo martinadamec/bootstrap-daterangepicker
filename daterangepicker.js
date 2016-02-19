@@ -108,22 +108,6 @@
 
         this.showOnInit = true;
 
-        // Allows you to provide localized strings for buttons and labels, 
-        // customize the date display format, and change the first day of week for the calendars
-        this.locale = {
-            format: 'MM/DD/YYYY',
-            separator: ' - ',
-            applyLabel: 'Apply',
-            cancelLabel: 'Cancel',
-            weekLabel: 'W',
-            customRangeLabel: 'Custom Range',
-            fromLabel: 'Start date',
-            toLabel: 'End date',
-            daysOfWeek: moment.weekdaysMin(),
-            monthNames: moment.monthsShort(),
-            firstDay: moment.localeData().firstDayOfWeek()
-        };
-
         this.callback = function() { };
 
         // Some state information
@@ -141,6 +125,26 @@
         // data-api options will be overwritten with custom javascript options
         options = $.extend(this.element.data(), options);
 
+        // Moment - you can pass your localization by argument in options
+        if ( typeof options.momentLocale === 'string' ) {
+            moment.locale(options.momentLocale);
+        }
+
+        // Allows you to provide localized strings for buttons and labels, 
+        // customize the date display format, and change the first day of week for the calendars
+        this.locale = {
+            format: 'MM/DD/YYYY',
+            separator: ' - ',
+            applyLabel: 'Apply',
+            cancelLabel: 'Cancel',
+            weekLabel: 'W',
+            customRangeLabel: 'Custom Range',
+            fromLabel: 'Start date',
+            toLabel: 'End date',
+            daysOfWeek: moment.weekdaysMin(),
+            monthNames: moment.monthsShort(),
+            firstDay: moment.localeData().firstDayOfWeek()
+        };
 
         //
         // handle all the possible options overriding defaults
@@ -263,7 +267,7 @@
                 this[key] = options[key];
             }
         }
-        
+
         // - Objects
         _tmp = ["dateLimit"];
         for ( var i in _tmp )
