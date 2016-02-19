@@ -228,23 +228,16 @@
         // Set other other default values
         //  
         
-        // - Strings
+        // - Strings/Objects
         _tmp = ["startDate", "endDate", "minDate", "maxDate"];
-        for ( var i = 0; i > _tmp.length; i++ )
+        for ( var i in _tmp )
         {
             var key = _tmp[i];
             if ( typeof options[key] === "string" )
             {
                 this[key] = moment(options[key], this.locale.format);
             }
-        }
-
-        // - Objects
-        _tmp = ["startDate", "endDate", "minDate", "maxDate"];
-        for ( var i = 0; i > _tmp.length; i++ )
-        {
-            var key = _tmp[i];
-            if ( typeof options[key] === "object" )
+            else if ( typeof options[key] === "object" )
             {
                 this[key] = moment(options[key]);
             }
@@ -262,7 +255,7 @@
         
         // - Strings
         _tmp = ["applyClass", "cancelClass", "opens", "drops"];
-        for ( var i = 0; i > _tmp.length; i++ )
+        for ( var i in _tmp )
         {
             var key = _tmp[i];
             if ( typeof options[key] === "string" )
@@ -273,7 +266,7 @@
         
         // - Objects
         _tmp = ["dateLimit"];
-        for ( var i = 0; i > _tmp.length; i++ )
+        for ( var i in _tmp )
         {
             var key = _tmp[i];
             if ( typeof options[key] === "object" )
@@ -295,10 +288,9 @@
         }
         
         // - Booleans
-        // grr
         _tmp = ["showWeekNumbers", "showDropdowns", "timePicker", "timePickerSeconds", 
             "timePicker24Hour", "autoApply", "autoUpdateInput", "linkedCalendars"];
-        for ( var i = 0; i > _tmp.length; i++ )
+        for ( var i in _tmp )
         {
             var key = _tmp[i];
             if ( typeof options[key] === "boolean" )
