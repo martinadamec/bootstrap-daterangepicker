@@ -36,6 +36,7 @@
 }(this || {}, function(root, daterangepicker, moment, $) { // 'this' doesn't exist on a server
 
     var DateRangePicker = function(element, options, cb) {
+        var _tmp = [];
 
         // jQuery selector of the parent element that the date range picker will be added to, if not provided this will be 'body'
         this.parentEl = 'body';
@@ -107,7 +108,8 @@
 
         this.showOnInit = true;
 
-        // Allows you to provide localized strings for buttons and labels, customize the date display format, and change the first day of week for the calendars
+        // Allows you to provide localized strings for buttons and labels, 
+        // customize the date display format, and change the first day of week for the calendars
         this.locale = {
             format: 'MM/DD/YYYY',
             separator: ' - ',
@@ -146,9 +148,9 @@
         if ( typeof options.locale === 'object' ) 
         {
             // Strings
-            var strings = ["format", "separator", "applyLabel", "cancelLabel", "weekLabel", "fromLabel", "toLabel", "customRangeLabel"];
-            for ( var i in strings ) {
-                var key = strings[i];
+            _tmp = ["format", "separator", "applyLabel", "cancelLabel", "weekLabel", "fromLabel", "toLabel", "customRangeLabel"];
+            for ( var i in _tmp ) {
+                var key = _tmp[i];
                 if ( typeof options.locale[key] === 'string' ) 
                 {
                     this.locale[key] = options.locale[key];
@@ -156,9 +158,9 @@
             }
 
             // Objects
-            var objects = ["daysOfWeek", "monthNames"];
-            for ( var i in objects ) {
-                var key = objects[i];
+            _tmp = ["daysOfWeek", "monthNames"];
+            for ( var i in _tmp ) {
+                var key = _tmp[i];
                 if ( typeof options.locale[key] === 'object' ) 
                 {
                     this.locale[key] = options.locale[key].slice();
@@ -207,6 +209,11 @@
             '</div>';
         }
 
+        // set template
+        this.parentEl = (options.parentEl && $(options.parentEl).length) ? $(options.parentEl) : $(this.parentEl);
+        this.container = $(options.template).appendTo(this.parentEl);
+
+
         // Default other templates
         var defaultTemplates = {
             arrowLeft: '<i class="fa fa-chevron-left"></i>',
@@ -216,97 +223,99 @@
         // Tempaltes for other elements
         this.templates = $.extend(defaultTemplates, options.templates);
 
-        this.parentEl = (options.parentEl && $(options.parentEl).length) ? $(options.parentEl) : $(this.parentEl);
-        this.container = $(options.template).appendTo(this.parentEl);
 
-        if (typeof options.startDate === 'string')
-            this.startDate = moment(options.startDate, this.locale.format);
+        //
+        // Set other other default values
+        //  
+        
+        // - Strings
+        _tmp = ["startDate", "endDate", "minDate", "maxDate"];
+        for ( var i = 0; i > _tmp.length; i++ )
+        {
+            var key = _tmp[i];
+            if ( typeof options[key] === "string" )
+            {
+                this[key] = moment(options[key], this.locale.format);
+            }
+        }
 
-        if (typeof options.endDate === 'string')
-            this.endDate = moment(options.endDate, this.locale.format);
+        // - Objects
+        _tmp = ["startDate", "endDate", "minDate", "maxDate"];
+        for ( var i = 0; i > _tmp.length; i++ )
+        {
+            var key = _tmp[i];
+            if ( typeof options[key] === "object" )
+            {
+                this[key] = moment(options[key]);
+            }
+        }
 
-        if (typeof options.minDate === 'string')
-            this.minDate = moment(options.minDate, this.locale.format);
-
-        if (typeof options.maxDate === 'string')
-            this.maxDate = moment(options.maxDate, this.locale.format);
-
-        if (typeof options.startDate === 'object')
-            this.startDate = moment(options.startDate);
-
-        if (typeof options.endDate === 'object')
-            this.endDate = moment(options.endDate);
-
-        if (typeof options.minDate === 'object')
-            this.minDate = moment(options.minDate);
-
-        if (typeof options.maxDate === 'object')
-            this.maxDate = moment(options.maxDate);
-
-        // sanity check for bad options
-        if (this.minDate && this.startDate.isBefore(this.minDate))
+        // - Sanity check for bad options
+        if (this.minDate && this.startDate.isBefore(this.minDate)) {
             this.startDate = this.minDate.clone();
+        }
 
-        // sanity check for bad options
-        if (this.maxDate && this.endDate.isAfter(this.maxDate))
+        // - Sanity check for bad options
+        if (this.maxDate && this.endDate.isAfter(this.maxDate)) {
             this.endDate = this.maxDate.clone();
+        }
+        
+        // - Strings
+        _tmp = ["applyClass", "cancelClass", "opens", "drops"];
+        for ( var i = 0; i > _tmp.length; i++ )
+        {
+            var key = _tmp[i];
+            if ( typeof options[key] === "string" )
+            {
+                this[key] = options[key];
+            }
+        }
+        
+        // - Objects
+        _tmp = ["dateLimit"];
+        for ( var i = 0; i > _tmp.length; i++ )
+        {
+            var key = _tmp[i];
+            if ( typeof options[key] === "object" )
+            {
+                this[key] = options[key];
+            }
+        }
 
-        if (typeof options.applyClass === 'string')
-            this.applyClass = options.applyClass;
-
-        if (typeof options.cancelClass === 'string')
-            this.cancelClass = options.cancelClass;
-
-        if (typeof options.dateLimit === 'object')
-            this.dateLimit = options.dateLimit;
-
-        if (typeof options.opens === 'string')
-            this.opens = options.opens;
-
-        if (typeof options.drops === 'string')
-            this.drops = options.drops;
-
-        if (typeof options.showWeekNumbers === 'boolean')
-            this.showWeekNumbers = options.showWeekNumbers;
-
-        if (typeof options.buttonClasses === 'string')
-            this.buttonClasses = options.buttonClasses;
-
-        if (typeof options.buttonClasses === 'object')
+        // - Button classes
+        if (typeof options.buttonClasses === 'object') {
             this.buttonClasses = options.buttonClasses.join(' ');
+        }
 
-        if (typeof options.showDropdowns === 'boolean')
-            this.showDropdowns = options.showDropdowns;
-
+        // - Single date picker
         if (typeof options.singleDatePicker === 'boolean') {
             this.singleDatePicker = options.singleDatePicker;
             if (this.singleDatePicker)
                 this.endDate = this.startDate.clone();
         }
+        
+        // - Booleans
+        // grr
+        _tmp = ["showWeekNumbers", "showDropdowns", "timePicker", "timePickerSeconds", 
+            "timePicker24Hour", "autoApply", "autoUpdateInput", "linkedCalendars"];
+        for ( var i = 0; i > _tmp.length; i++ )
+        {
+            var key = _tmp[i];
+            if ( typeof options[key] === "boolean" )
+            {
+                this[key] = options[key];
+            }
+        }
 
-        if (typeof options.timePicker === 'boolean')
-            this.timePicker = options.timePicker;
-
-        if (typeof options.timePickerSeconds === 'boolean')
-            this.timePickerSeconds = options.timePickerSeconds;
-
-        if (typeof options.timePickerIncrement === 'number')
+        // - Increment time picker
+        if (typeof options.timePickerIncrement === 'number') {
             this.timePickerIncrement = options.timePickerIncrement;
+        }
 
-        if (typeof options.timePicker24Hour === 'boolean')
-            this.timePicker24Hour = options.timePicker24Hour;
-
-        if (typeof options.autoApply === 'boolean')
-            this.autoApply = options.autoApply;
-
-        if (typeof options.autoUpdateInput === 'boolean')
-            this.autoUpdateInput = options.autoUpdateInput;
-
-        if (typeof options.linkedCalendars === 'boolean')
-            this.linkedCalendars = options.linkedCalendars;
-
-        if (typeof options.isInvalidDate === 'function')
+        // - Callback when date is invalid
+        if (typeof options.isInvalidDate === 'function') {
             this.isInvalidDate = options.isInvalidDate;
+        }
 
         // update day names order to firstDay
         if (this.locale.firstDay != 0) {
